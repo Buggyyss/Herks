@@ -146,6 +146,20 @@
     border-left:6px solid var(--line-red); padding:18px 18px 16px; position:relative;
   }
   .quiz-kicker{ font-family:'Space Mono', monospace; font-size:12px; color:var(--pine-dark); opacity:0.8; margin-bottom:8px; }
+  .timer-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .timer-bar-track{
+    flex:1; height:8px; background:rgba(63,107,74,0.18); border-radius:6px; overflow:hidden;
+  }
+  .timer-bar-fill{
+    height:100%; width:100%; background:var(--pine); border-radius:6px;
+    transition:width 1s linear, background-color .3s ease;
+  }
+  .timer-bar-fill.warn{ background:var(--gold); }
+  .timer-bar-fill.danger{ background:var(--line-red); }
+  .timer-num{
+    font-family:'Space Mono', monospace; font-weight:700; font-size:13px; color:var(--pine-dark);
+    width:26px; text-align:right; flex:0 0 auto;
+  }
   .question{ font-family:'Fredoka', sans-serif; font-weight:600; font-size:19px; margin-bottom:14px; }
   .options{ display:flex; flex-direction:column; gap:10px; }
   .opt{
@@ -228,14 +242,15 @@
         <li><span class="tag">ENTRY</span> Spend ₱350 or more on any item or service today.</li>
         <li><span class="tag">FOLLOW</span> Follow H.D. Herkz and show your ID for an instant 5% off.</li>
         <li><span class="tag">BONUS</span> Answer one store-trivia question right for an extra 2% off.</li>
-        <li><span class="tag">LEVELS</span> Pick one level — Easy, Medium, or Hard. Answer it right to bank that level's discount.</li>
+        <li><span class="tag">LEVELS</span> Pick one level and answer every question in it correctly to bank that level's discount — one wrong answer or a missed timer ends the round.</li>
       </ul>
       <table class="payout-table">
-        <tr><th>Level</th><th>Correct</th><th>+ Follow</th><th>+ Bonus</th><th>Max total</th></tr>
-        <tr><td>Easy</td><td>5%</td><td>5%</td><td>2%</td><td class="total">12%</td></tr>
-        <tr><td>Medium</td><td>10%</td><td>5%</td><td>2%</td><td class="total">17%</td></tr>
-        <tr><td>Hard</td><td>15%</td><td>5%</td><td>2%</td><td class="total">22%</td></tr>
+        <tr><th>Level</th><th>Questions</th><th>Timer</th><th>Level %</th><th>Max total</th></tr>
+        <tr><td>Easy</td><td>5</td><td>3s each</td><td>5%</td><td class="total">12%</td></tr>
+        <tr><td>Medium</td><td>10</td><td>5s each</td><td>10%</td><td class="total">17%</td></tr>
+        <tr><td>Hard</td><td>15</td><td>10s each</td><td>15%</td><td class="total">22%</td></tr>
       </table>
+      <p style="font-size:12.5px; opacity:0.75; margin-top:8px;">Max total = level % + 5% follow bonus + 2% store-trivia bonus.</p>
       <button class="btn" style="margin-top:16px;" onclick="goTo('screen-eligibility')">Start the Level-Up Challenge</button>
     </div>
   </section>
@@ -282,6 +297,10 @@
     <div class="card">
       <div class="quiz-card">
         <div class="quiz-kicker" id="quiz-kicker">LEVEL · EASY</div>
+        <div class="timer-row">
+          <div class="timer-bar-track"><div class="timer-bar-fill" id="timer-fill"></div></div>
+          <div class="timer-num" id="timer-num">15</div>
+        </div>
         <div class="question" id="quiz-question">Loading question…</div>
         <div class="options" id="quiz-options"></div>
         <div class="feedback" id="quiz-feedback"></div>
@@ -303,6 +322,10 @@
       <p>Answer this one about H.D. Herkz itself for an extra 2% on top of everything else.</p>
       <div class="quiz-card">
         <div class="quiz-kicker">BONUS ROUND · ABOUT THE STORE</div>
+        <div class="timer-row">
+          <div class="timer-bar-track"><div class="timer-bar-fill" id="bonus-timer-fill"></div></div>
+          <div class="timer-num" id="bonus-timer-num">20</div>
+        </div>
         <div class="question" id="bonus-question">Loading question…</div>
         <div class="options" id="bonus-options"></div>
         <div class="feedback" id="bonus-feedback"></div>
@@ -344,33 +367,39 @@ const EASY = [
   {q:"What is the capital of the Philippines?", a:"Manila", opts:["Cebu","Davao","Manila","Baguio"]},
   {q:"How many days are there in a week?", a:"7 days", opts:["5 days","6 days","7 days","8 days"]},
   {q:"What is 10 + 15?", a:"25", opts:["20","25","30","35"]},
-  {q:"What is the largest planet in our solar system?", a:"Jupiter", opts:["Earth","Mars","Jupiter","Saturn"]},
-  {q:"Which part of the plant absorbs water from the soil?", a:"The roots", opts:["The leaves","The stem","The roots","The flower"]},
-  {q:"Who wrote the Philippine national anthem?", a:"Julián Felipe", opts:["José Rizal","Julián Felipe","Andrés Bonifacio","Emilio Aguinaldo"]},
   {q:"What is the opposite of \u201chot\u201d?", a:"Cold", opts:["Warm","Cold","Wet","Dry"]},
   {q:"What is the chemical symbol for water?", a:"H₂O", opts:["O₂","CO₂","H₂O","NaCl"]},
 ];
 
 const MEDIUM = [
   {q:"What is the process by which plants make their own food?", a:"Photosynthesis", opts:["Respiration","Digestion","Photosynthesis","Evaporation"]},
+  {q:"What is the largest planet in our solar system?", a:"Jupiter", opts:["Earth","Mars","Jupiter","Saturn"]},
   {q:"What is the longest river in the Philippines?", a:"Cagayan River", opts:["Pasig River","Cagayan River","Agno River","Bicol River"]},
   {q:"Who is known as the \u201cFather of the Philippine Revolution\u201d?", a:"Andrés Bonifacio", opts:["José Rizal","Andrés Bonifacio","Antonio Luna","Apolinario Mabini"]},
   {q:"What is 25 × 12?", a:"300", opts:["250","275","300","325"]},
-  {q:"Which organ pumps blood throughout the human body?", a:"The heart", opts:["The lungs","The liver","The heart","The kidneys"]},
+  {q:"Which organ pumps blood throughout the human body?", a:"Heart", opts:["Lungs","Liver","Heart","Kidneys"]},
   {q:"Which planet is known as the Red Planet?", a:"Mars", opts:["Venus","Mars","Jupiter","Mercury"]},
   {q:"What is the largest organ in the human body?", a:"Skin", opts:["Liver","Heart","Skin","Lungs"]},
   {q:"What is the capital city of Japan?", a:"Tokyo", opts:["Osaka","Kyoto","Tokyo","Seoul"]},
+  {q:"Who wrote the Philippine National Anthem?", a:"Julián Felipe", opts:["José Rizal","Julián Felipe","Andrés Bonifacio","Emilio Aguinaldo"]},
 ];
 
 const HARD = [
-  {q:"What are the three branches of the Philippine government?", a:"Executive, Legislative, and Judicial", opts:["Executive, Legislative, and Judicial","Executive, Legislative, and Monarchy","Federal, State, and Local","Senate, Congress, and Cabinet"]},
-  {q:"Who was the first President of the Philippines?", a:"Emilio Aguinaldo", opts:["José Rizal","Emilio Aguinaldo","Manuel Quezon","Andrés Bonifacio"]},
-  {q:"In what year did the Philippines gain independence from Spain?", a:"1898", opts:["1896","1898","1901","1946"]},
-  {q:"Who discovered the Philippines for Spain in 1521?", a:"Ferdinand Magellan", opts:["Miguel López de Legazpi","Ferdinand Magellan","Christopher Columbus","Vasco da Gama"]},
-  {q:"What is the name of the revolution against Spanish rule in the Philippines?", a:"Philippine Revolution", opts:["EDSA Revolution","Philippine Revolution","Katipunan War","Cry of Pugad Lawin"]},
-  {q:"What important event happened on June 12, 1898?", a:"Philippine Declaration of Independence was proclaimed in Kawit", opts:["Treaty of Paris was signed","Battle of Manila Bay was fought","Philippine Declaration of Independence was proclaimed in Kawit","The Katipunan was founded"]},
-  {q:"Solve: 8 × 12 − 15 = ?", a:"81", opts:["71","81","91","96"]},
-  {q:"How many colors are there in a rainbow?", a:"7", opts:["5","6","7","8"]},
+  {q:"Who was the first President of the First Philippine Republic?", a:"Emilio Aguinaldo", opts:["José Rizal","Emilio Aguinaldo","Manuel Quezon","Andrés Bonifacio"]},
+  {q:"What treaty ended the Spanish-American War and transferred the Philippines to the United States?", a:"Treaty of Paris (1898)", opts:["Treaty of Versailles","Treaty of Paris (1898)","Treaty of Tordesillas","Treaty of Kanagawa"]},
+  {q:"Who is known as the \u201cBrains of the Katipunan\u201d?", a:"Emilio Jacinto", opts:["Andrés Bonifacio","Emilio Jacinto","Apolinario Mabini","Antonio Luna"]},
+  {q:"In what year was the Katipunan founded?", a:"1892", opts:["1872","1892","1896","1898"]},
+  {q:"What was the first constitution of the Philippines called?", a:"Malolos Constitution", opts:["1935 Constitution","Malolos Constitution","Cory Constitution","Commonwealth Constitution"]},
+  {q:"Solve: (24 × 15) ÷ 6", a:"60", opts:["50","55","60","65"]},
+  {q:"What is the square root of 1,296?", a:"36", opts:["32","34","36","38"]},
+  {q:"Solve: 18² − 24", a:"300", opts:["280","300","320","340"]},
+  {q:"A rectangle has a length of 15 cm and a width of 8 cm. What is its area?", a:"120 cm²", opts:["100 cm²","110 cm²","120 cm²","130 cm²"]},
+  {q:"Solve: 96 ÷ 8 + (14 × 5)", a:"82", opts:["72","78","82","88"]},
+  {q:"What is the powerhouse of the cell?", a:"Mitochondria", opts:["Nucleus","Ribosome","Mitochondria","Chloroplast"]},
+  {q:"What is the chemical symbol for sodium?", a:"Na", opts:["So","Na","Sd","S"]},
+  {q:"Which blood type is known as the universal donor?", a:"O negative (O−)", opts:["AB positive","O negative (O−)","A positive","B negative"]},
+  {q:"What is the largest planet in our solar system?", a:"Jupiter", opts:["Saturn","Jupiter","Neptune","Earth"]},
+  {q:"Which gas makes up about 78% of Earth's atmosphere?", a:"Nitrogen", opts:["Oxygen","Nitrogen","Carbon Dioxide","Argon"]},
 ];
 
 const BONUS = [
@@ -381,12 +410,13 @@ const BONUS = [
 ];
 
 const LEVELS = [
-  {label:"LEVEL · EASY", short:"Easy", pool:EASY, pct:5},
-  {label:"LEVEL · MEDIUM", short:"Medium", pool:MEDIUM, pct:10},
-  {label:"LEVEL · HARD", short:"Hard", pool:HARD, pct:15},
+  {label:"LEVEL · EASY", short:"Easy", pool:EASY, pct:5, time:3},
+  {label:"LEVEL · MEDIUM", short:"Medium", pool:MEDIUM, pct:10, time:5},
+  {label:"LEVEL · HARD", short:"Hard", pool:HARD, pct:15, time:10},
 ];
 const FOLLOW_PCT = 5;
 const BONUS_PCT = 2;
+const BONUS_TIME = 20;
 
 /* ---------------- state ---------------- */
 let state = {
@@ -443,11 +473,37 @@ function renderPicker(){
     b.className = 'picker-card';
     b.innerHTML =
       '<span><span class="p-name">'+lv.short+'</span>'+
-      '<div class="p-desc">Answer right to bank '+lv.pct+'% off.</div></span>'+
+      '<div class="p-desc">'+lv.pool.length+' questions · '+lv.time+'s each · all correct banks '+lv.pct+'% off</div></span>'+
       '<span class="p-go">PLAY</span>';
     b.onclick = ()=> choosePlayerLevel(i);
     wrap.appendChild(b);
   });
+}
+
+/* ---------------- countdown timer ---------------- */
+let timerInterval = null;
+function clearAppTimer(){ if(timerInterval){ clearInterval(timerInterval); timerInterval = null; } }
+function startTimer(seconds, fillEl, numEl, onExpire){
+  clearAppTimer();
+  let remaining = seconds;
+  fillEl.classList.remove('warn','danger');
+  fillEl.style.transition = 'none';
+  fillEl.style.width = '100%';
+  void fillEl.offsetHeight;
+  fillEl.style.transition = 'width 1s linear, background-color .3s ease';
+  numEl.textContent = remaining;
+  timerInterval = setInterval(()=>{
+    remaining--;
+    const pct = Math.max(0, (remaining/seconds)*100);
+    fillEl.style.width = pct + '%';
+    numEl.textContent = Math.max(0, remaining);
+    if(remaining <= Math.ceil(seconds*0.3)) fillEl.classList.add('danger');
+    else if(remaining <= Math.ceil(seconds*0.5)) fillEl.classList.add('warn');
+    if(remaining <= 0){
+      clearAppTimer();
+      onExpire();
+    }
+  }, 1000);
 }
 
 function choosePlayerLevel(i){
@@ -457,18 +513,27 @@ function choosePlayerLevel(i){
 }
 
 /* ---------------- main level question ---------------- */
+let levelQuestions = [];
+let qPos = 0;
+
 function loadLevel(){
+  const level = LEVELS[state.levelIdx];
+  levelQuestions = shuffled(level.pool);
+  qPos = 0;
+  document.getElementById('stamp-wrap').style.display = 'none';
+  document.getElementById('btn-continue').style.display = 'none';
+  loadLevelQuestion();
+}
+
+function loadLevelQuestion(){
   answered = false;
   const level = LEVELS[state.levelIdx];
-  currentQ = pickQuestion(level.pool);
+  currentQ = levelQuestions[qPos];
 
-  document.getElementById('quiz-kicker').textContent = level.label;
+  document.getElementById('quiz-kicker').textContent = level.label + " · Question " + (qPos+1) + " of " + levelQuestions.length;
   document.getElementById('quiz-question').textContent = currentQ.q;
   document.getElementById('quiz-feedback').textContent = "";
   document.getElementById('stamp-wrap').style.display = 'none';
-  document.getElementById('stamp').style.animation = 'none';
-  document.getElementById('stamp').offsetHeight; /* restart animation */
-  document.getElementById('stamp').style.animation = '';
   document.getElementById('btn-continue').style.display = 'none';
 
   const optWrap = document.getElementById('quiz-options');
@@ -480,32 +545,67 @@ function loadLevel(){
     b.onclick = ()=>selectLevelAnswer(b, optText);
     optWrap.appendChild(b);
   });
+
+  startTimer(level.time, document.getElementById('timer-fill'), document.getElementById('timer-num'), handleLevelTimeout);
+}
+
+function failLevel(reasonText){
+  const level = LEVELS[state.levelIdx];
+  const fb = document.getElementById('quiz-feedback');
+  fb.textContent = reasonText + " Round over at question " + (qPos+1) + " of " + levelQuestions.length + " — no discount from this level.";
+  fb.className = 'feedback bad';
+  state.levelResult = {label: level.short, correct:false, pct:0};
+  document.getElementById('btn-continue').style.display = 'block';
+}
+
+function passLevel(){
+  const level = LEVELS[state.levelIdx];
+  const fb = document.getElementById('quiz-feedback');
+  fb.textContent = "All " + levelQuestions.length + " correct! You banked " + level.pct + "% off.";
+  fb.className = 'feedback ok';
+  document.getElementById('stamp-pct').textContent = level.pct + "%";
+  document.getElementById('stamp').style.animation = 'none';
+  document.getElementById('stamp').offsetHeight; /* restart animation */
+  document.getElementById('stamp').style.animation = '';
+  document.getElementById('stamp-wrap').style.display = 'flex';
+  state.levelResult = {label: level.short, correct:true, pct:level.pct};
+  document.getElementById('btn-continue').style.display = 'block';
+}
+
+function handleLevelTimeout(){
+  if(answered) return;
+  answered = true;
+  document.querySelectorAll('#quiz-options .opt').forEach(o=>{
+    o.disabled = true;
+    if(o.textContent === currentQ.a) o.classList.add('correct');
+  });
+  failLevel("Time's up!");
 }
 
 function selectLevelAnswer(btn, optText){
   if(answered) return;
   answered = true;
+  clearAppTimer();
   const correct = optText === currentQ.a;
-  const level = LEVELS[state.levelIdx];
   document.querySelectorAll('#quiz-options .opt').forEach(o=>{
     o.disabled = true;
     if(o.textContent === currentQ.a) o.classList.add('correct');
     else if(o===btn) o.classList.add('wrong');
   });
 
-  const fb = document.getElementById('quiz-feedback');
   if(correct){
-    fb.textContent = "Correct! You banked " + level.pct + "% off.";
+    const fb = document.getElementById('quiz-feedback');
+    fb.textContent = "Correct!";
     fb.className = 'feedback ok';
-    document.getElementById('stamp-pct').textContent = level.pct + "%";
-    document.getElementById('stamp-wrap').style.display = 'flex';
-    state.levelResult = {label: level.short, correct:true, pct:level.pct};
+    qPos++;
+    if(qPos >= levelQuestions.length){
+      passLevel();
+    } else {
+      setTimeout(loadLevelQuestion, 600);
+    }
   } else {
-    fb.textContent = "Not quite — no discount from this level.";
-    fb.className = 'feedback bad';
-    state.levelResult = {label: level.short, correct:false, pct:0};
+    failLevel("Not quite.");
   }
-  document.getElementById('btn-continue').style.display = 'block';
 }
 
 function advanceFromLevel(){
@@ -532,11 +632,28 @@ function loadBonus(){
     b.onclick = ()=>selectBonusAnswer(b, optText);
     optWrap.appendChild(b);
   });
+
+  startTimer(BONUS_TIME, document.getElementById('bonus-timer-fill'), document.getElementById('bonus-timer-num'), handleBonusTimeout);
+}
+
+function handleBonusTimeout(){
+  if(bonusAnswered) return;
+  bonusAnswered = true;
+  document.querySelectorAll('#bonus-options .opt').forEach(o=>{
+    o.disabled = true;
+    if(o.textContent === currentQ.a) o.classList.add('correct');
+  });
+  const fb = document.getElementById('bonus-feedback');
+  fb.textContent = "Time's up — no bonus discount this time.";
+  fb.className = 'feedback bad';
+  state.bonusResult = {correct:false, pct:0};
+  document.getElementById('btn-bonus-continue').style.display = 'block';
 }
 
 function selectBonusAnswer(btn, optText){
   if(bonusAnswered) return;
   bonusAnswered = true;
+  clearAppTimer();
   const correct = optText === currentQ.a;
   document.querySelectorAll('#bonus-options .opt').forEach(o=>{
     o.disabled = true;
@@ -592,6 +709,7 @@ function rLine(label, val){
 }
 
 function resetGame(){
+  clearAppTimer();
   document.getElementById('chk-spend').checked = false;
   document.getElementById('chk-follow').checked = false;
   updateEligibility();
