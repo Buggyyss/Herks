@@ -152,7 +152,7 @@
   }
   .timer-bar-fill{
     height:100%; width:100%; background:var(--pine); border-radius:6px;
-    transition:width 1s linear, background-color .3s ease;
+    transition:width 1s linear, background-color .5s ease;
   }
   .timer-bar-fill.warn{ background:var(--gold); }
   .timer-bar-fill.danger{ background:var(--line-red); }
@@ -246,7 +246,7 @@
       </ul>
       <table class="payout-table">
         <tr><th>Level</th><th>Questions</th><th>Timer</th><th>Level %</th><th>Max total</th></tr>
-        <tr><td>Easy</td><td>5</td><td>3s each</td><td>5%</td><td class="total">12%</td></tr>
+        <tr><td>Easy</td><td>5</td><td>5s each</td><td>5%</td><td class="total">12%</td></tr>
         <tr><td>Medium</td><td>10</td><td>5s each</td><td>10%</td><td class="total">17%</td></tr>
         <tr><td>Hard</td><td>15</td><td>10s each</td><td>15%</td><td class="total">22%</td></tr>
       </table>
@@ -490,7 +490,7 @@ function startTimer(seconds, fillEl, numEl, onExpire){
   fillEl.style.transition = 'none';
   fillEl.style.width = '100%';
   void fillEl.offsetHeight;
-  fillEl.style.transition = 'width 1s linear, background-color .3s ease';
+  fillEl.style.transition = 'width 1s linear, background-color .5s ease';
   numEl.textContent = remaining;
   timerInterval = setInterval(()=>{
     remaining--;
